@@ -7,7 +7,7 @@ http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/
     </http:listener-config>
     <apikit:config name="customer-management-api-config" api="resource::f4e83565-b5da-4657-9525-647d24956bf3:customer-management-api:1.0.4:raml:zip:customer-management-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <db:config name="Database_Config" doc:name="Database Config" doc:id="7704f39a-ed10-4a03-9bb6-41ad6d76fcc9" >
-		<db:generic-connection url="jdbc:postgresql://localhost:5432/customermanagement" driverClassName="org.postgresql.Driver" user="postgres" password="postgres" />
+		<db:generic-connection url="${database.url}" driverClassName="${database.driver}" user="${database.user}" password="${database.password}" />
 	</db:config>
 	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="7920cda9-26d9-4d35-aa28-6f8db312a9a1" >
 		<jms:active-mq-connection >
