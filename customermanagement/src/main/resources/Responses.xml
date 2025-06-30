@@ -1,0 +1,13 @@
+<responses>
+    <response>
+        <method>GET</method>
+        <sentence attribute="OK">La richiesta GET è stata completata con successo.</sentence>
+        <sentence attribute="KO">Si è verificato un errore durante la richiesta GET.</sentence>
+        
+   </response>
+   <response>
+        <method>POST</method>
+        <sentence attribute="OK">La richiesta POST è stata elaborata correttamente.</sentence>
+        <sentence attribute="KO">Si è verificato un problema durante la richiesta POST.</sentence>
+   </response>
+</responses>

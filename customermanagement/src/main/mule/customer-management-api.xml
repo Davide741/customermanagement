@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
     <http:listener-config name="customer-management-api-httpListenerConfig">
         <http:listener-connection host="0.0.0.0" port="8081" />
     </http:listener-config>
     <apikit:config name="customer-management-api-config" api="resource::f4e83565-b5da-4657-9525-647d24956bf3:customer-management-api:1.0.4:raml:zip:customer-management-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <flow name="customer-management-api-main">
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="7704f39a-ed10-4a03-9bb6-41ad6d76fcc9" >
+		<db:generic-connection url="jdbc:postgresql://localhost:5432/customermanagement" driverClassName="org.postgresql.Driver" user="postgres" password="postgres" />
+	</db:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="7920cda9-26d9-4d35-aa28-6f8db312a9a1" >
+		<jms:active-mq-connection >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="9f261990-cdd6-4cc0-9bf9-21c79f7f7554" file="properties.yaml" />
+	<flow name="customer-management-api-main">
         <http:listener config-ref="customer-management-api-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
@@ -15,85 +26,10 @@
             </http:error-response>
         </http:listener>
         <apikit:router config-ref="customer-management-api-config" />
-        <error-handler>
-            <on-error-propagate type="APIKIT:BAD_REQUEST">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Bad request"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:NOT_FOUND">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Resource not found"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Method not allowed"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Not acceptable"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Unsupported media type"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Not Implemented"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b0c7d742-406c-473d-8919-e5e13264b251" >
+				<set-payload value="error.errorMessage" doc:name="Set Payload" doc:id="5a72bb11-7d2a-43e4-8c1a-2b170c7db611" />
+			</on-error-propagate>
         </error-handler>
     </flow>
     <flow name="customer-management-api-console">
@@ -124,16 +60,63 @@ output application/json
         </error-handler>
     </flow>
     <flow name="get:\customer:customer-management-api-config">
-        <logger level="INFO" message="get:\customer:customer-management-api-config" />
+        <logger level="INFO" message="#[attributes.queryParams.tier]" />
+		<db:select doc:name="Select" doc:id="5be791ce-a789-401a-856b-8045003d07f6" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM test."v_customer" WHERE "tierdescription" = :Tier;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ Tier: attributes.queryParams.Tier }]]]></db:input-parameters>
+		</db:select>
+		<set-payload value="%dw 2.0 ​&#10;output application/json ​&#10;--- ​&#10;payload" doc:name="Set Payload" doc:id="65458ebd-6afe-4644-af2e-96359497874b" />
+		<ee:transform doc:name="Transform Message" doc:id="5e14c562-ab85-4847-9e29-71d6fcf50082" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+var XMLdata = readUrl("classpath://Responses.xml", "application/xml")
+var responses = XMLdata.responses.*response
+
+---
+{
+  ResponsesOK: responses map (resp) -> {
+    Method: resp.method,
+    Sentence: (resp.*sentence filter ($.@attribute == "OK")) [0]
+  },
+  ResponsesKO: responses map (resp) -> {
+    Method: resp.method,
+    Sentence: (resp.*sentence filter ($.@attribute == "KO")) [0]
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="30541ab5-4e7e-4397-8bcb-b152371788f5" type="ANY">
+				<set-payload value="payload" doc:name="Set Payload" doc:id="10c14274-921f-47ab-a5d9-696fb4db8b49" />
+			</on-error-propagate>
+		</error-handler>
     </flow>
     <flow name="post:\customer:application\json:customer-management-api-config">
-        <ee:transform doc:name="Transform Message">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
+		<set-payload value="#[&quot;l'utente &quot; ++ payload.Name ++ &quot;  &quot; ++ payload.Surname ++ &quot; è stato aggiunto correttamente&quot;]" doc:name="Set Payload" doc:id="19230ab1-58a7-43b3-81a3-2fde5c60d60b" />
+		<ee:transform doc:name="Transform Message" doc:id="1beb5ed3-045d-47a1-bd1b-ddeb3add5e2e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
+var XMLdata = readUrl("classpath://responses.xml", "application/xml")
+var responses = XMLdata.responses.*response
+var sentences = (responses filter (r) -> r.Method== "POST")[0].*Sentence
 ---
-"Example" as String {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+ 
+
+
+{
+  ResponsesOK: responses map (resp) -> {
+    Method: resp.method,
+    Sentence: (resp.*sentence filter ($.@attribute == "OK")) [0]
+  },
+  ResponsesKO: responses map (resp) -> {
+    Method: resp.method,
+    Sentence: (resp.*sentence filter ($.@attribute == "KO")) [0]
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<jms:publish doc:name="Publish" doc:id="edb2e88c-4982-4214-bd9c-efc5319c2fb7" config-ref="JMS_Config" destination="CUSTOMERMANAGEMENT.GET" timeToLiveUnit="DAYS" destinationType="TOPIC"/>
     </flow>
 </mule>
